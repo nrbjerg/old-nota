@@ -33,7 +33,9 @@ lexeme :: Parser a -> Parser a
 lexeme = L.lexeme sc
 
 parseEverythingButNewline :: Parser String
-parseEverythingButNewline = lexeme . many $ noneOf "\n"
+parseEverythingButNewline = do
+  content <- lexeme . many $ noneOf "\n"
+  return $ lexeme (content ++ "\n")
 
 -- TODO: implement these functions
 parseMacro :: Parser Node
@@ -138,10 +140,10 @@ parseNota = L.nonIndented scn (L.indentBlock scn p) <* eof
       return $ L.IndentMany Nothing return parser
 -}
 
-testParser :: String -> IO ()
+testParser :: String -> String
 testParser str = case runParser parseNota "test" str of
-  (Left err) -> print err
-  (Right node) -> print node
+  (Left err) -> show err
+  (Right node) -> show node
 
 parseFile :: Path -> IO ()
 parseFile pathToFile = do
