@@ -5,11 +5,11 @@ import System.IO
 
 data File = File
   { path :: String,
-    contents :: String
+    file_contents :: String
   }
 
 instance Show File where
-  show (File path contents) = "[" ++ path ++ "]: \n" ++ contents
+  show (File path file_contents) = "[" ++ path ++ "]: \n" ++ file_contents
 
 type Path = String
 

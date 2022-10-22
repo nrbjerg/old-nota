@@ -5,14 +5,14 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           nota
-version:        0.0.0.1
-description:    Please see the README on GitHub at <https://github.com/nrbjerg/nota#readme>
-homepage:       https://github.com/nrbjerg/nota#readme
-bug-reports:    https://github.com/nrbjerg/nota/issues
-author:         Martin Sig Nørbjerg
-maintainer:     martin1509@outlook.dk
-copyright:      2022 Martin Sig Nørbjerg
-license:        MIT
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/githubuser/nota#readme>
+homepage:       https://github.com/githubuser/nota#readme
+bug-reports:    https://github.com/githubuser/nota/issues
+author:         Author name here
+maintainer:     example@example.com
+copyright:      2022 Author name here
+license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
@@ -21,13 +21,16 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/nrbjerg/nota
+  location: https://github.com/githubuser/nota
 
 library
   exposed-modules:
+      AST
       CLI
+      Equation
       Files
       Lib
+      Parser
   other-modules:
       Paths_nota
   hs-source-dirs:
@@ -35,6 +38,7 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
+    , megaparsec
     , optparse-applicative
   default-language: Haskell2010
 
@@ -47,6 +51,7 @@ executable nota-exe
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , megaparsec
     , nota
     , optparse-applicative
   default-language: Haskell2010
@@ -61,6 +66,7 @@ test-suite nota-test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , megaparsec
     , nota
     , optparse-applicative
   default-language: Haskell2010

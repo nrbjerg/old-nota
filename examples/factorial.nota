@@ -1,0 +1,22 @@
+@def{factorial}:
+    We define \bf{factorial} of $n \in \N$ as $n!$ and define it as:
+    @eq:
+        n! = \prod{n, k = 1} k
+
+# Some simple properties.
+
+@prop:
+    We have $n! = n (n - 1)!$.
+
+This proof is left as an exercise for the reader.
+
+@prop:
+    We have $n! >= n$ for all $n \in \N$
+
+@proof:
+    We will show this with induction, suppose $n = 1$, then $n! = 1 = n$.
+    Now suppose $n > 1$ and that the proposition holds for all $k >= n$,
+    we have using the last lemma that
+    @eq:
+        n! = n (n - 1)! >= n (n - 1) >= n
+    since $n >= 2$.

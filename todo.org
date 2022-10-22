@@ -1,0 +1,14 @@
+#+title: TODO
+
+* Minimum viable product:
+** Parsing [0/7]
++ [ ] Parsing of environments.
++ [ ] Parsing of information.
++ [-] Parsing of equations.
++ [-] Parsing of inlines.
++ [-] Parsing of latex.
++ [ ] Parsing of text.
++ [ ] Parsing of headers.
+** Compiling [/]
++ [ ] Compile information sections.
++ [ ] Replace custom definitions.

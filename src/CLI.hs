@@ -20,3 +20,14 @@ cliArguments =
           <> short 'q'
           <> help "Whether to be quiet"
       )
+
+parseCLIArgs :: IO CLIArguments
+parseCLIArgs = execParser opts
+  where
+    opts =
+      info
+        (cliArguments <**> helper)
+        ( fullDesc
+            <> progDesc "The nota compiler."
+            <> header "The nota compiler"
+        )
