@@ -33,9 +33,7 @@ lexeme :: Parser a -> Parser a
 lexeme = L.lexeme sc
 
 parseEverythingButNewline :: Parser String
-parseEverythingButNewline = do
-  content <- lexeme . many $ noneOf "\n"
-  return $ lexeme (content ++ "\n")
+parseEverythingButNewline = lexeme . many $ noneOf "\n"
 
 -- TODO: implement these functions
 parseMacro :: Parser Node
@@ -78,7 +76,9 @@ parseLatex = L.indentBlock scn p
   where
     p = do
       _ <- string "@latex:"
-      return $ L.IndentMany Nothing (return . (Latex . concat)) parseEverythingButNewline
+      return $ L.IndentMany Nothing (return . (Latex . aux)) parseEverythingButNewline
+      where
+        aux = foldl (\x y -> x ++ y ++ "\n") ""
 
 parseEnvironment :: Parser Node -- FIXME: This is very buggy
 parseEnvironment = parseLatex <|> L.indentBlock scn p
