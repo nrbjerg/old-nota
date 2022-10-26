@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 
 -- | Contains the logic for parsing the nota markup language
-module Parser where
+module Parser (runParserOn, parseFile) where
 
 -- import Control.Monad (void)
 
@@ -39,22 +39,24 @@ parseEverythingButNewline = lexeme . many $ noneOf "\n"
 parseMacro :: Parser Node
 parseMacro = do
   _ <- char '\\'
-  id <- some letterChar -- TODO: Fail if this is "latex"
+  id <- some (letterChar <|> oneOf "\\") -- TODO: Add more options (+ / ect.)
   args <- parseArguments
   return $ Macro id args
 
-parseComma :: Parser Node
-parseComma = do
-  _ <- char ','
-  return Comma
+parseSemiColon :: Parser Node
+parseSemiColon = do
+  _ <- char ';'
+  return SemiColon
+
+parseAmpersand :: Parser Node
+parseAmpersand = do
+  _ <- char '&'
+  return Ampersand
 
 parseText :: Parser Node
 parseText = do
-  text <- some $ noneOf "#\\@,{}$\n" -- TODO: Is this enough?
+  text <- some $ noneOf "#\\@;&{}$\n" -- TODO: Is this enough?
   return $ Text text
-
-parseArgument :: Parser Node
-parseArgument = parseText <|> parseMacro <|> parseComma
 
 between' :: Parser a -> (Char, Char) -> Parser a
 between' p (c1, c2) = do
@@ -65,7 +67,7 @@ between' p (c1, c2) = do
 
 parseArguments :: Parser [Node]
 parseArguments = do
-  args <- optional $ many (parseText <|> parseMacro <|> parseComma) `between'` ('{', '}')
+  args <- optional $ many (parseText <|> parseMacro <|> parseSemiColon) `between'` ('{', '}')
   return $ aux args
   where
     aux (Just actual_args) = actual_args
@@ -86,22 +88,21 @@ parseEnvironment = parseLatex <|> L.indentBlock scn p
     p = do
       _ <- char '@'
       env <- some letterChar -- TODO: Fail if this is "latex"
-      asterix <- optional $ char '*'
       args <- parseArguments
       _ <- char ':'
       case env of
-        "eq" -> return $ L.IndentMany Nothing (return . (Equation (isJust asterix))) parser -- unwords could also be an option (if the spaces gets removed.)
-        _ -> return $ L.IndentMany Nothing (return . Environment env (isJust asterix) args) parser
+        "eq" -> return $ L.IndentMany Nothing (return . Equation args . concat) parseEquationLine
+        _ -> return $ L.IndentMany Nothing (return . Environment env args . concat) (many parser) -- Something goes wrong here.
 
-parseEquationContents :: Parser [Node]
-parseEquationContents =
+parseEquationLine :: Parser [Node]
+parseEquationLine =
   many
-    ( parseText <|> parseMacro
+    ( parseAmpersand <|> parseText <|> parseMacro
     )
 
 parseInline :: Parser Node -- Maybe use the between operator
 parseInline = do
-  contents <- parseEquationContents `between'` ('$', '$')
+  contents <- (parseEquationLine) `between'` ('$', '$') -- TODO: Allow for newlines
   return $ Inline contents
 
 parseInformation :: Parser Node
@@ -112,7 +113,7 @@ parseHeader = L.nonIndented scn p
   where
     p = do
       hashtags <- some $ char '#' -- FIXME throw parse error if there is to many hashtags
-      contents <- many (parseText <|> parseInline <|> parseComma)
+      contents <- many (parseText <|> parseInline)
       return $ Header (length hashtags) contents
 
 -- Functions that are exported
@@ -123,25 +124,16 @@ parser =
         <|> parseMacro
         <|> parseText
         <|> parseInline
-        <|> parseComma
         <|> parseHeader
         --   <|> parseInformation
-        --   <|> parseHeader
     )
 
+-- NOTE: We could also define: parseNota = some parser <* eof
 parseNota :: Parser [Node]
-parseNota = some parser <* eof
+parseNota = L.nonIndented scn (many parser) <* eof
 
-{-
-TODO: Make it such that the first element cannot be indented
-parseNota = L.nonIndented scn (L.indentBlock scn p) <* eof
-  where
-    p = do
-      return $ L.IndentMany Nothing return parser
--}
-
-testParser :: String -> String
-testParser str = case runParser parseNota "test" str of
+runParserOn :: String -> String
+runParserOn str = case runParser parseNota "test" str of
   (Left err) -> show err
   (Right node) -> show node
 
