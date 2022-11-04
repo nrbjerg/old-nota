@@ -1,2 +1,13 @@
-@def{factorial}:
-    test, test
+@def{metrix}:
+    Let $d: V \times V \to \R^+$, if the following holds
+    @enum:
+        \- $d(v, v) = 0$ \& $d(v, u) \neq 0$ if $v \neq u$.
+        \- $d(v, u) = d(u, v)$.
+        \- $d(v, w) \leq d(v, u) + d(u, w)$
+    We call $d$ a metric.
+
+@prop:
+    test
+    @eq:
+        tets2
+    since $n$.

@@ -9,7 +9,6 @@
     We have $n! = n (n - 1)!$.
 
 This proof is left as an exercise for the reader.
-
 @prop:
     We have $n! >= n$ for all $n \in \N$
 
