@@ -1,5 +1,6 @@
 {-# LANGUAGE TupleSections #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
+{-# OPTIONS_GHC -Wno-unused-top-binds #-}
 
 -- | Contains the logic for parsing the nota markup language
 module Parser (runParserOn, parseFile) where
@@ -39,7 +40,7 @@ parseEverythingButNewline = lexeme . many $ noneOf "\n"
 parseMacro :: Parser Node
 parseMacro = do
   _ <- char '\\'
-  id <- some (letterChar <|> oneOf "\\") -- TODO: Add more options (+ / ect.)
+  id <- some (letterChar <|> oneOf "\\-+&") -- TODO: Add more options (+ / ect.)
   args <- parseArguments
   return $ Macro id args
 
@@ -55,46 +56,54 @@ parseAmpersand = do
 
 parseText :: Parser Node
 parseText = do
-  text <- some $ noneOf "#\\@;&{}$\n" -- TODO: Is this enough?
+  text <- some $ noneOf "#\\@;%&{}$\n" -- TODO: Is this enough?
   return $ Text text
 
-between' :: Parser a -> (Char, Char) -> Parser a
-between' p (c1, c2) = do
-  _ <- char c1
-  content <- p
-  _ <- char c2
+between' :: Parser a -> (Parser b, Parser b) -> Parser a
+between' contentParser (start, end) = do
+  _ <- start
+  content <- contentParser
+  _ <- end
   return content
 
 parseArguments :: Parser [Node]
 parseArguments = do
-  args <- optional $ many (parseText <|> parseMacro <|> parseSemiColon) `between'` ('{', '}')
+  args <- optional $ many (parseText <|> parseMacro <|> parseSemiColon) `between'` (char '{', char '}')
   return $ aux args
   where
     aux (Just actual_args) = actual_args
     aux Nothing = []
 
 parseLatex :: Parser Node
-parseLatex = L.indentBlock scn p
+parseLatex = char '@' *> L.indentBlock scn p
   where
     p = do
-      _ <- string "@latex:"
+      _ <- string "latex:"
+      _ <- many $ oneOf "\t "
       return $ L.IndentMany Nothing (return . (Latex . aux)) parseEverythingButNewline
       where
         aux = foldl (\x y -> x ++ y ++ "\n") ""
 
 parseEnvironment :: Parser Node -- FIXME: This is very buggy
-parseEnvironment = parseLatex <|> L.indentBlock scn p
+parseEnvironment = char '@' *> L.indentBlock scn p
   where
     p = do
-      _ <- char '@'
-      env <- some letterChar -- TODO: Fail if this is "latex"
+      env <- some letterChar <|> fail "Expected enviroment id with letters in the range [a-z]"
       args <- parseArguments
       _ <- char ':'
+      _ <- many $ oneOf "\t "
       case env of
-        "eq" -> return $ L.IndentMany Nothing (return . Equation args . concat) parseEquationLine
-        _ -> return $ L.IndentMany Nothing (return . Environment env args . concat) (many parser) -- Something goes wrong here.
+        "eq" -> do
+          contentsOfFirstLine <- parseEquationLine
+          return $ L.IndentMany Nothing (return . Equation args . (contentsOfFirstLine ++) . concat) parseEquationLine
+        _ -> do
+          contentsOfFirstLine <- many parser
+          return $ L.IndentMany Nothing (return . Environment env args . (contentsOfFirstLine ++) . concat) $ many parser -- Something goes wrong here.
 
-parseEquationLine :: Parser [Node]
+parseSymbol :: Parser Node -- TODO.
+parseSymbol = return SemiColon
+
+parseEquationLine :: Parser [Node] -- FIXME: Fix this here.
 parseEquationLine =
   many
     ( parseAmpersand <|> parseText <|> parseMacro
@@ -102,7 +111,7 @@ parseEquationLine =
 
 parseInline :: Parser Node -- Maybe use the between operator
 parseInline = do
-  contents <- (parseEquationLine) `between'` ('$', '$') -- TODO: Allow for newlines
+  contents <- parseEquationLine `between'` (char '$', char '$') -- TODO: Allow for newlines
   return $ Inline contents
 
 parseInformation :: Parser Node
@@ -119,27 +128,34 @@ parseHeader = L.nonIndented scn p
 -- Functions that are exported
 parser :: Parser Node
 parser =
-  lexeme $
-    ( parseEnvironment
-        <|> parseMacro
-        <|> parseText
-        <|> parseInline
-        <|> parseHeader
-        --   <|> parseInformation
-    )
+  parseMacro
+    <|> parseText
+    <|> parseInline
+    <|> try parseHeader
+    <|> try parseLatex
+    <|> parseEnvironment
 
--- NOTE: We could also define: parseNota = some parser <* eof
+parseNewline :: Parser Node
+parseNewline = do
+  _ <- char '\n'
+  return Newline
+
+parserWithNewline :: Parser Node
+parserWithNewline = parser <|> parseNewline
+
 parseNota :: Parser [Node]
-parseNota = L.nonIndented scn (many parser) <* eof
+parseNota = many (lexeme parserWithNewline) <* eof
+
+-- parseNota = L.nonIndented scn (many parser) <* eof
 
 runParserOn :: String -> String
-runParserOn str = case runParser parseNota "test" str of
+runParserOn str = case runParser parseNota "runParserOn" str of
   (Left err) -> show err
   (Right node) -> show node
 
 parseFile :: Path -> IO ()
 parseFile pathToFile = do
   file <- loadNotaFile pathToFile
-  case runParser parseNota pathToFile $ file_contents file of
+  case runParser parseNota pathToFile $ file_contents file ++ "\n" of
     (Left err) -> print err
     (Right node) -> print node

@@ -1,7 +1,8 @@
 module Main (main) where
 
 import CLI
-import Files
+-- import Files
+import Parser
 
 main :: IO ()
-main = print =<< loadNotaFile . file =<< parseCLIArgs
+main = parseFile . file =<< parseCLIArgs
