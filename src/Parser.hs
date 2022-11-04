@@ -37,12 +37,20 @@ parseEverythingButNewline :: Parser String
 parseEverythingButNewline = lexeme . many $ noneOf "\n"
 
 -- TODO: implement these functions
+
 parseMacro :: Parser Node
-parseMacro = do
-  _ <- char '\\'
-  id <- some (letterChar <|> oneOf "\\-+&") -- TODO: Add more options (+ / ect.)
-  args <- parseArguments
-  return $ Macro id args
+parseMacro = char '\\' *> (generalMacro <|> specialMacro <|> newlineMacro)
+  where
+    generalMacro = do
+      id <- some letterChar
+      args <- parseArguments
+      return $ Macro id args
+    specialMacro = do
+      id <- oneOf "$@&;"
+      return $ Macro [id] []
+    newlineMacro = do
+      _ <- string "\\\\"
+      return NewlineMacro
 
 parseSemiColon :: Parser Node
 parseSemiColon = do
@@ -100,19 +108,65 @@ parseEnvironment = char '@' *> L.indentBlock scn p
           contentsOfFirstLine <- many parser
           return $ L.IndentMany Nothing (return . Environment env args . (contentsOfFirstLine ++) . concat) $ many parser -- Something goes wrong here.
 
-parseSymbol :: Parser Node -- TODO.
-parseSymbol = return SemiColon
+-- Equation specific parsers
+parseGroup :: Parser Node
+parseGroup = do
+  content <- parseEquationLine `between'` (char '{', char '}')
+  return $ Group content
+
+parseElementInEquation :: Parser Node
+parseElementInEquation = do
+  source <- some (letterChar <|> numberChar)
+  return $ Element source
+
+parseFraction :: Parser Node
+parseFraction =
+  let aux = parseGroup <|> parseMacro <|> parseElementInEquation
+   in do
+        numerator <- aux
+        _ <- many spaceChar *> char '/' *> many spaceChar
+        denominator <- aux
+        return $ Fraction numerator denominator
+
+parseSubscript :: Parser Node
+parseSubscript = do
+  _ <- char '_' *> many spaceChar
+  content <- parseElementInEquation <|> parseGroup <|> parseMacro
+  return $ Subscript content
+
+parseRaised :: Parser Node
+parseRaised = do
+  _ <- char '^' *> many spaceChar
+  content <- parseElementInEquation <|> parseGroup <|> parseMacro
+  return $ Raised content
+
+parseOperand :: Parser Node
+parseOperand = do
+  source <- oneOf "+-*=!|," -- TODO: Should | be apart of this?
+  return $ Operand source
+
+parseBracketPair :: Parser Node
+parseBracketPair =
+  let opening = oneOf "([" <|> (char '\\' *> char '{') -- TODO: Allow for having them the different way
+      closing = oneOf ")];" <|> (char '\\' *> char '}')
+   in do
+        left <- opening
+        content <- parseEquationLine
+        right <- closing -- Semi colon is used for cases.
+        return $ BracketPair left content right
 
 parseEquationLine :: Parser [Node] -- FIXME: Fix this here.
 parseEquationLine =
-  many
-    ( parseAmpersand <|> parseText <|> parseMacro
-    )
+  many $
+    many
+      spaceChar
+      *> ( try parseBracketPair <|> parseAmpersand <|> parseMacro <|> try parseFraction <|> parseGroup <|> parseSubscript <|> parseRaised <|> parseElementInEquation <|> parseOperand
+         )
 
 parseInline :: Parser Node -- Maybe use the between operator
 parseInline = do
-  contents <- parseEquationLine `between'` (char '$', char '$') -- TODO: Allow for newlines
-  return $ Inline contents
+  content <- parseEquationLine `between'` (char '$', char '$') -- TODO: Allow for newlines
+  return $ Inline content
 
 parseInformation :: Parser Node
 parseInformation = return $ Information "" []
@@ -122,8 +176,8 @@ parseHeader = L.nonIndented scn p
   where
     p = do
       hashtags <- some $ char '#' -- FIXME throw parse error if there is to many hashtags
-      contents <- many (parseText <|> parseInline)
-      return $ Header (length hashtags) contents
+      content <- many (parseText <|> parseInline)
+      return $ Header (length hashtags) content
 
 -- Functions that are exported
 parser :: Parser Node
@@ -156,6 +210,6 @@ runParserOn str = case runParser parseNota "runParserOn" str of
 parseFile :: Path -> IO ()
 parseFile pathToFile = do
   file <- loadNotaFile pathToFile
-  case runParser parseNota pathToFile $ file_contents file ++ "\n" of
+  case runParser parseNota pathToFile $ file_content file ++ "\n" of
     (Left err) -> print err
     (Right node) -> print node

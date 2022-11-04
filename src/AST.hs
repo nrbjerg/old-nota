@@ -4,13 +4,24 @@ module AST where
 data Node
   = Macro {id :: String, args :: [Node]}
   | Latex {source :: String}
-  | Environment {id :: String, args :: [Node], contents :: [Node]}
+  | Environment {id :: String, args :: [Node], content :: [Node]}
   | Text {source :: String}
-  | SemiColon
-  | Ampersand
+  | -- Header & information
+    Information {id :: String, content :: [Node]}
+  | Header {level :: Int, content :: [Node]}
   | Newline
-  | Equation {args :: [Node], contents :: [Node]} -- TODO: the source code should also be parsed, however this will have to wait.
-  | Inline {contents :: [Node]}
-  | Header {level :: Int, contents :: [Node]} -- NOTE: A header may contain inline equations.
-  | Information {id :: String, contents :: [Node]}
+  | NewlineMacro
+  | Equation {args :: [Node], content :: [Node]} -- TODO: the source code should also be parsed, however this will have to wait.
+  | Inline {content :: [Node]}
+  | -- Special things for equations
+    Ampersand
+  | SemiColon
+  | Operand {typ :: Char}
+  | Element {source :: String} -- This is either a character or a number
+  | Subscript {element_or_group :: Node} --
+  | Raised {element_or_group :: Node}
+  | Group {content :: [Node]}
+  | Factor {content :: [Node]}
+  | BracketPair {left :: Char, content :: [Node], right :: Char}
+  | Fraction {numerator :: Node, denominator :: Node} -- Each one of these is either a text object, macro or a group
   deriving (Show, Eq)
