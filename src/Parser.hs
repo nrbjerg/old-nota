@@ -124,7 +124,7 @@ parseFraction =
   let aux = parseGroup <|> parseMacro <|> parseElementInEquation
    in do
         numerator <- aux
-        _ <- many spaceChar *> char '/' *> many spaceChar
+        _ <- many spaceChar *> char '/' <* many spaceChar
         denominator <- aux
         return $ Fraction numerator denominator
 
@@ -180,9 +180,15 @@ parseHeader = L.nonIndented scn p
       return $ Header (length hashtags) content
 
 -- Functions that are exported
+parseComments :: Parser Node
+parseComments = do
+  _ <- char '%' *> many (noneOf "\n")
+  return Comment
+
 parser :: Parser Node
 parser =
   parseMacro
+    <|> parseComments
     <|> parseText
     <|> parseInline
     <|> try parseHeader
@@ -198,7 +204,7 @@ parserWithNewline :: Parser Node
 parserWithNewline = parser <|> parseNewline
 
 parseNota :: Parser [Node]
-parseNota = many (lexeme parserWithNewline) <* eof
+parseNota = many (parserWithNewline) <* eof
 
 -- parseNota = L.nonIndented scn (many parser) <* eof
 

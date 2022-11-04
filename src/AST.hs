@@ -10,6 +10,7 @@ data Node
     Information {id :: String, content :: [Node]}
   | Header {level :: Int, content :: [Node]}
   | Newline
+  | Comment
   | NewlineMacro
   | Equation {args :: [Node], content :: [Node]} -- TODO: the source code should also be parsed, however this will have to wait.
   | Inline {content :: [Node]}
