@@ -9,7 +9,7 @@ import Parser
 import Test.HUnit
 
 parserTests :: Test
-parserTests = TestList [testText, testHeader, testEnvironment] -- testEquation,
+parserTests = TestList [testText, testHeader, testEnvironment, testEquation]
 
 testText :: Test
 testText =

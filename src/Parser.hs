@@ -74,7 +74,7 @@ between' contentParser (start, end) = do
   _ <- end
   return content
 
-parseArguments :: Parser [Node]
+parseArguments :: Parser [Node] -- maybe use sepby
 parseArguments = do
   args <- optional $ many (parseText <|> parseMacro <|> parseSemiColon) `between'` (char '{', char '}')
   return $ aux args
@@ -142,7 +142,7 @@ parseRaised = do
 
 parseOperand :: Parser Node
 parseOperand = do
-  source <- oneOf "+-*=!|," -- TODO: Should | be apart of this?
+  source <- oneOf "+-*=!|,<>" -- TODO: Should | be apart of this?
   return $ Operand source
 
 parseBracketPair :: Parser Node
@@ -162,6 +162,7 @@ parseEquationLine =
       spaceChar
       *> ( try parseBracketPair <|> parseAmpersand <|> parseMacro <|> try parseFraction <|> parseGroup <|> parseSubscript <|> parseRaised <|> parseElementInEquation <|> parseOperand
          )
+      <* many spaceChar
 
 parseInline :: Parser Node -- Maybe use the between operator
 parseInline = do
@@ -213,9 +214,8 @@ runParserOn str = case runParser parseNota "runParserOn" str of
   (Left err) -> show err
   (Right node) -> show node
 
-parseFile :: Path -> IO ()
-parseFile pathToFile = do
-  file <- loadNotaFile pathToFile
-  case runParser parseNota pathToFile $ file_content file ++ "\n" of
-    (Left err) -> print err
-    (Right node) -> print node
+parseFile :: File -> Either String [Node]
+parseFile f = do
+  case runParser parseNota (path f) $ file_content f ++ "\n" of
+    (Left err) -> Left $ show err
+    (Right ast) -> Right ast

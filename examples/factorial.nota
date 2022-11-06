@@ -1,7 +1,7 @@
 @def{factorial}:
     We define \bf{factorial} of $n \in \N$ as $n!$ and define it as:
     @eq:
-        n! = \prod{n, k = 1} k
+        n! = \prod^n_{k = 1} k
 
 # Some simple properties.
 
@@ -10,12 +10,12 @@
 
 This proof is left as an exercise for the reader.
 @prop:
-    We have $n! >= n$ for all $n \in \N$
+    We have $n! \geq n$ for all $n \in \N$
 
 @proof:
     We will show this with induction, suppose $n = 1$, then $n! = 1 = n$.
-    Now suppose $n > 1$ and that the proposition holds for all $k >= n$,
+    Now suppose $n > 1$ and that the proposition holds for all $k \geq n$,
     we have using the last lemma that
     @eq:
-        n! = n (n - 1)! >= n (n - 1) >= n
-    since $n >= 2$.
+        n! = n (n - 1)! \geq n (n - 1) \geq n
+    since $n \geq 2$.
