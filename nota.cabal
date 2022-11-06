@@ -27,9 +27,9 @@ library
   exposed-modules:
       AST
       CLI
+      Compile
       Equation
       Files
-      Lib
       Parser
   other-modules:
       Paths_nota
